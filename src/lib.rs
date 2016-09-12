@@ -6,6 +6,9 @@ use std::u32;
 use std::slice::{Iter as SliceIter, IterMut as SliceIterMut};
 use std::ops::{Index, IndexMut};
 use std::marker::PhantomData;
+use std::fmt::{Result as FmtResult, Formatter, Debug};
+use std::hash::{Hash, Hasher};
+use std::cmp::Ordering;
 
 /// The type used internally to store a tag.
 ///
@@ -29,11 +32,47 @@ pub const MAXIMUM_CAPACITY: usize = u32::MAX as usize - 1;
 /// the `IdVec`, while the `tag` allows disambiguating between values when a slot gets reused (a
 /// matching tag is stored in the slot and is incremented every time a value is removed from that
 /// slot).
-#[derive(Debug, Hash, PartialOrd, Ord, PartialEq, Eq)]
 pub struct Id<T> {
     index: IdIndex,
     tag: IdTag,
     _data: PhantomData<T>,
+}
+
+impl<T> Debug for Id<T> {
+    fn fmt(&self, formatter: &mut Formatter) -> FmtResult {
+        write!(formatter,
+               "Id {{ index: {:?}, tag: {:?} }}",
+               self.index,
+               self.tag)
+    }
+}
+
+impl<T> Hash for Id<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        (self.index, self.tag).hash(state)
+    }
+}
+
+impl<T> PartialOrd for Id<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<T> PartialEq for Id<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.tag == other.tag && self.index == other.index
+    }
+
+    fn ne(&self, other: &Self) -> bool {
+        self.tag != other.tag || self.index != other.index
+    }
+}
+
+impl<T> Ord for Id<T> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        (self.tag, self.index).cmp(&(other.tag, other.index))
+    }
 }
 
 impl<T> Clone for Id<T> {
@@ -47,6 +86,7 @@ impl<T> Clone for Id<T> {
 }
 
 impl<T> Copy for Id<T> {}
+impl<T> Eq for Id<T> {}
 
 #[derive(Debug, Clone)]
 enum Slot<T> {
@@ -490,21 +530,21 @@ fn panic_for_bad_id<'a, T: 'a>(num_slots: usize,
     } else if let Some(&TaggedSlot { tag, ref slot }) = tagged_slot {
         if tag > id.tag {
             if (tag - id.tag) < 100 {
-                format!("tag `{}` larger than slot tag `{}` (deleted?)", id.tag, tag)
+                format!("tag `{}` older than slot tag `{}`, deleted?", id.tag, tag)
             } else {
-                format!("tag `{}` much larger than slot tag `{}` (wrong `IdVec` or deleted?)",
+                format!("tag `{}` much older than slot tag `{}`, wrong `IdVec` or deleted?",
                         id.tag,
                         tag)
             }
         } else if tag < id.tag {
-            format!("tag `{}` smaller than slot tag `{}` (wrong `IdVec`?)",
+            format!("tag `{}` newer than slot tag `{}`, wrong `IdVec`?",
                     id.tag,
                     tag)
         } else {
             match *slot {
                 Slot::Free { .. } => {
-                    format!("tag `{}` matches, but the slot is free (wrong `IdVec` with same \
-                             seed_tag `{}`?)",
+                    format!("tag `{}` matches, but the slot is free, wrong `IdVec` with same \
+                             seed_tag `{}`?",
                             id.tag,
                             seed_tag)
                 }
@@ -514,14 +554,14 @@ fn panic_for_bad_id<'a, T: 'a>(num_slots: usize,
     } else {
         format!("<IdVec bug [no TaggedSlot], please report!>")
     };
-    panic!("Invalid id (index=`{}`, tag=`{}`) for IdVec (num_slots=`{}`, seed_tag=`{}`, \
-            len=`{}`): {}",
+    panic!("Invalid id: {} (id={{ index=`{}`, tag=`{}` }}, id_vec={{ num_slots=`{}`, \
+            seed_tag=`{}`, len=`{}` }})",
+           reason,
            id.index,
            id.tag,
            num_slots,
            seed_tag,
-           len,
-           reason);
+           len)
 }
 
 impl<T> Index<Id<T>> for IdVec<T> {
