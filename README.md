@@ -26,7 +26,7 @@ Add the dependency to your `Cargo.toml` manifest.
 ```toml
 
 [dependencies]
-idcontain = "0.2"
+idcontain = "0.3"
 ```
 
 Example

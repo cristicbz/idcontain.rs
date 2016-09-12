@@ -1,12 +1,13 @@
 [package]
 authors = ["Cristi Cobzarenco <cristi.cobzarenco@gmail.com>"]
 name = "idcontain"
-version = "0.2.0"
+version = "0.3.0"
 build = "build.rs"
 
 description = "Generational (or tagged) ID-based containers."
 homepage = "https://github.com/cristicbz/idcontain.rs"
 repository = "https://github.com/cristicbz/idcontain.rs"
+documentation = "https://docs.rs/idcontain"
 readme = "README.md"
 keywords = ["collections", "containers", "id", "generational", "ecs"]
 license = "MIT/Apache-2.0"
