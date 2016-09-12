@@ -1,6 +1,9 @@
 idcontain
 ---
 
+* [crates.io](https://crates.io/idcontain)
+* [Documentation](https://docs.rs/idcontain)
+
 A Rust library for containers built around 'generational id-s': tagged id-s
 which prevent errors caused by id reuse, id mixing (between different
 containers) and enable 'dangling id' detection (using an id after it was
@@ -23,7 +26,7 @@ Add the dependency to your `Cargo.toml` manifest.
 ```toml
 
 [dependencies]
-idcontain = "0.1"
+idcontain = "0.2"
 ```
 
 Example

@@ -7,18 +7,26 @@ use std::slice::{Iter as SliceIter, IterMut as SliceIterMut};
 use std::ops::{Index, IndexMut};
 use std::marker::PhantomData;
 
-pub type IdIndex = u32;
+/// The type used internally to store a tag.
+///
+/// This type is almost internal and you should only care about it if calling
+/// `with_capacity_and_seed_tag`.
 pub type IdTag = u32;
 
+type IdIndex = u32;
+
+/// The maximum size of an `IdVec`.
 pub const MAXIMUM_CAPACITY: usize = u32::MAX as usize - 1;
 
 /// The `Id` of an element of type `T` as returned by `IdVec` insertions.
 ///
-/// `Id`-s are opaque, but `Copy`, comparable and hashable. Think of them as safe `*const T` which
-/// you can dereference if you have reference to the originating `IdVec`.
+/// `Id`-s are opaque, but `Copy`, comparable and hashable. Think of an `Id` as a safe `*const T`
+/// which you can dereference if you have a reference to the originating `IdVec`.
 ///
-/// Internally an `Id` is implemented as an `(index, tag)` pair. The `index` points to a slot in the
-/// `IdVec`, while the `tag` allows disambiguating between values when a slot gets reused (a
+/// Implementation
+/// ---
+/// Internally an `Id` is implemented as an `(index, tag)` pair. The `index` points to a slot in
+/// the `IdVec`, while the `tag` allows disambiguating between values when a slot gets reused (a
 /// matching tag is stored in the slot and is incremented every time a value is removed from that
 /// slot).
 #[derive(Debug, Hash, PartialOrd, Ord, PartialEq, Eq)]
@@ -40,13 +48,13 @@ impl<T> Clone for Id<T> {
 
 impl<T> Copy for Id<T> {}
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Slot<T> {
     Free { next_free: IdIndex },
     Occupied { value: T },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct TaggedSlot<T> {
     tag: IdTag,
     slot: Slot<T>,
@@ -97,7 +105,7 @@ struct TaggedSlot<T> {
 /// (adding more elements and removing them in between).
 ///
 ///
-/// Mixing Id-s
+/// Id Mixing
 /// ---
 /// Using an `Id` from a different `IdVec` will fail at compile time, unless both `IdVec`-s are of
 /// the same type. You are encouraged to newtype liberally to make leverage this as much as
@@ -122,12 +130,11 @@ struct TaggedSlot<T> {
 /// of the same `IdVec`. As such, this feature is also best-effort and should not be used for
 /// memory safety or security.
 ///
-/// For all other situations, it's probably fine, the probability curve follows the birthday
-/// paradox equation with m=2^32 / avg_num_elements_per_id_vec and n=num_id_vecs. So, for instance,
-/// 10 `IdVec`-s with 1000 elements each, gives a probability of about `(n^2/2m) = 0.001%` or
-/// 1 in 100,000.
-///
-/// To reiterate, though, try to rely on the compile time checks as much as possible anyway.
+/// For all other situations, it's probably fine. The probability curve follows the birthday
+/// paradox equation with `m=2^32 / avg_num_elements_per_id_vec` and `n=num_id_vecs`. So, for
+/// instance, 10 `IdVec`-s with 1000 elements each, gives a collision probability of about
+/// `(n^2/2m) = 0.001%` or 1 in 100,000.
+#[derive(Clone, Debug)]
 pub struct IdVec<T> {
     slots: Vec<TaggedSlot<T>>,
     first_free: IdIndex,
@@ -154,7 +161,7 @@ impl<T> IdVec<T> {
     /// Creates a new `IdVec` with a given capacity and seed tag.
     ///
     /// This is an advanced feature which may cause more `Id` collisions between your `IdVec`-s if
-    /// not used correctly.
+    /// used incorrectly.
     ///
     /// The `seed_tag` of an `IdVec` is the tag assigned to new slots. Removing elements increments
     /// this tag and wraps around, providing the mechanism for `Id` reuse prevention and `Id`
@@ -243,7 +250,6 @@ impl<T> IdVec<T> {
     /// ---
     /// None.
     ///
-    ///
     /// Example
     /// ---
     /// ```
@@ -267,7 +273,6 @@ impl<T> IdVec<T> {
     /// Panics
     /// ---
     /// None.
-    ///
     ///
     /// Example
     /// ---
@@ -420,7 +425,7 @@ impl<T> IdVec<T> {
     ///     println!("{}", i);  // Prints 1, 2, 3.
     /// }
     /// ```
-    pub fn iter(&self) -> Iter<T> {
+    pub fn iter<'a>(&'a self) -> Iter<'a, T> {
         Iter {
             num_left: self.len(),
             iter: self.slots.iter(),
@@ -452,7 +457,7 @@ impl<T> IdVec<T> {
     ///     println!("{}", i);  // Prints 2, 3, 4.
     /// }
     /// ```
-    pub fn iter_mut(&mut self) -> IterMut<T> {
+    pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a, T> {
         IterMut {
             num_left: self.len(),
             iter: self.slots.iter_mut(),
@@ -552,6 +557,7 @@ impl<T> IndexMut<Id<T>> for IdVec<T> {
     }
 }
 
+/// The type returned by `IdVec.iter()`.
 #[derive(Clone, Debug)]
 pub struct Iter<'a, T: 'a> {
     num_left: usize,
@@ -600,6 +606,7 @@ fn default_seed_tag() -> IdTag {
     rand::thread_rng().gen()
 }
 
+/// The type returned by `IdVec.iter_mut()`.
 #[derive(Debug)]
 pub struct IterMut<'a, T: 'a> {
     iter: SliceIterMut<'a, TaggedSlot<T>>,
