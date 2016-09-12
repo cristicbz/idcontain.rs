@@ -1,7 +1,7 @@
 idcontain
 ---
 
-* [crates.io](https://crates.io/idcontain)
+* [crates.io](https://crates.io/crates/idcontain)
 * [Documentation](https://docs.rs/idcontain)
 
 A Rust library for containers built around 'generational id-s': tagged id-s
