@@ -227,19 +227,10 @@ impl<T> IdVec<T> {
     /// assert!(!id_vec.contains(id));
     /// ```
     pub fn contains(&self, id: Id<T>) -> bool {
-        self.slots
-            .get(id.index as usize)
-            .map(|tagged_slot| {
-                if tagged_slot.tag == id.tag {
-                    match tagged_slot.slot {
-                        Slot::Occupied { .. } => true,
-                        Slot::Free { .. } => false,
-                    }
-                } else {
-                    false
-                }
-            })
-            .unwrap_or(false)
+        match self.slots.get(id.index as usize) {
+            Some(&TaggedSlot { slot: Slot::Occupied { .. }, tag }) if tag == id.tag => true,
+            _ => false,
+        }
     }
 
     /// Returns a reference to an element by `Id` or `None` if it doesn't exist.
