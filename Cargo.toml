@@ -1,0 +1,21 @@
+[package]
+authors = ["Cristi Cobzarenco <cristi.cobzarenco@gmail.com>"]
+name = "idcontain"
+version = "0.1.0"
+build = "build.rs"
+
+description = "Generational (or tagged) ID-based containers."
+homepage = "https://github.com/cristicbz/idcontain.rs"
+repository = "https://github.com/cristicbz/idcontain.rs"
+readme = "README.md"
+keywords = ["collection", "container", "collections", "containers", "id", "ids", "generational", "tagged", "ecs"]
+license = "MIT/Apache-2.0"
+
+[dependencies]
+rand = "0.3.14"
+
+[build-dependencies]
+skeptic = "0.5"
+
+[dev-dependencies]
+skeptic = "0.5"
