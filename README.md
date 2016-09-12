@@ -20,6 +20,10 @@ which mean you should not rely on it for memory safety or security. These cases
 are quite extreme so you're definitely OK to use this for video games etc. See
 the documentation for more details.
 
+An old but relevant [blog
+post](http://bitsquid.blogspot.co.uk/2011/09/managing-decoupling-part-4-id-lookup.html)
+about this technique.
+
 Getting Started
 ---
 Add the dependency to your `Cargo.toml` manifest.
