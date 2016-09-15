@@ -19,13 +19,24 @@ impl<T> Into<Option<Id<T>>> for OptionId<T> {
 impl<T> From<Option<Id<T>>> for OptionId<T> {
     fn from(option: Option<Id<T>>) -> Self {
         match option {
-            Some(id) => OptionId(id),
-            None => OptionId(Id::invalid()),
+            Some(id) => OptionId::some(id),
+            None => OptionId::none(),
         }
     }
 }
 
 impl<T> OptionId<T> {
+    #[inline]
+    pub fn some(id: Id<T>) -> Self {
+        assert!(id != Id::invalid());
+        OptionId(id)
+    }
+
+    #[inline]
+    pub fn none() -> Self {
+        OptionId(Id::invalid())
+    }
+
     #[inline]
     pub fn into_option(self) -> Option<Id<T>> {
         if self.is_some() { Some(self.0) } else { None }
