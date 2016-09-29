@@ -16,15 +16,15 @@ pub type IdTag = u32;
 /// top of the existing ones.
 pub type IdIndex = u32;
 
-/// The `Id` of an element of type `T` as returned by `IdVec` insertions.
+/// The `Id` of an element of type `T` as returned by `IdSlab` insertions.
 ///
 /// `Id`-s are opaque, but `Copy`, comparable and hashable. Think of an `Id` as a safe `*const T`
-/// which you can dereference if you have a reference to the originating `IdVec`.
+/// which you can dereference if you have a reference to the originating `IdSlab`.
 ///
 /// Implementation
 /// ---
 /// Internally an `Id` is implemented as an `(index, tag)` pair. The `index` points to a slot in
-/// the `IdVec`, while the `tag` allows disambiguating between values when a slot gets reused (a
+/// the `IdSlab`, while the `tag` allows disambiguating between values when a slot gets reused (a
 /// matching tag is stored in the slot and is incremented every time a value is removed from that
 /// slot).
 pub struct Id<T> {
@@ -48,9 +48,9 @@ impl<T> Id<T> {
     /// Example
     /// ---
     /// ```
-    /// # use idcontain::{IdVec, Id};
-    /// let id_vec: IdVec<&'static str> = IdVec::new();
-    /// assert!(!id_vec.contains(Id::invalid()));
+    /// # use idcontain::{IdSlab, Id};
+    /// let id_slab: IdSlab<&'static str> = IdSlab::new();
+    /// assert!(!id_slab.contains(Id::invalid()));
     /// ```
     pub fn invalid() -> Self {
         Id {

@@ -1,9 +1,9 @@
 extern crate rand;
 
 mod id;
-mod vec;
+mod slab;
 mod option;
 
 pub use id::{IdTag, Id};
-pub use vec::{MAXIMUM_CAPACITY, IdVec, Iter, IterMut};
+pub use slab::{MAXIMUM_CAPACITY, IdSlab, Iter, IterMut};
 pub use option::OptionId;
