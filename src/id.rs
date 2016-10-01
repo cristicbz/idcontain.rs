@@ -4,6 +4,9 @@ use std::fmt::{Result as FmtResult, Formatter, Debug};
 use std::hash::{Hash, Hasher};
 use std::cmp::Ordering;
 
+/// The maximum size of id containers.
+pub const MAXIMUM_CAPACITY: usize = u32::MAX as usize - 1;
+
 /// The type used internally to store a tag.
 ///
 /// This type is almost internal and you should only care about it if calling

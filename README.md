@@ -9,7 +9,7 @@ which prevent errors caused by id reuse, id mixing (between different
 containers) and enable 'dangling id' detection (using an id after it was
 deleted).
 
-Currently the only implemented type is `IdVec` which is an unordered collection,
+Currently the only implemented type is `IdSlab` which is an unordered collection,
 sometimes called a `Slab` allocator. It differs from @carllerche's excellent
 [Slab](https://crates.io/crates/slab) in its support for the properties
 described above at a small cost in memory and speed.
@@ -38,12 +38,12 @@ Example
 ```rust
 extern crate idcontain;
 
-use idcontain::{IdVec, Id};
+use idcontain::{IdSlab, Id};
 
 fn main() {
-  let mut id_vec_int1 = IdVec::new();
-  let mut id_vec_int2 = IdVec::with_capacity(3);
-  let mut id_vec_str = IdVec::with_capacity(1);
+  let mut id_vec_int1 = IdSlab::new();
+  let mut id_vec_int2 = IdSlab::with_capacity(3);
+  let mut id_vec_str = IdSlab::with_capacity(1);
 
   // Inserting an element returns its `Id`.
   let id1: Id<i32> = id_vec_int1.insert(1);
@@ -56,12 +56,12 @@ fn main() {
   let id2 = id_vec_int1.insert(20);
   assert!(id2 != id1);
 
-  // Id-s from different `IdVec`-s do not collide.
+  // Id-s from different `IdSlab`-s do not collide.
   let id3 = id_vec_int2.insert(20);
   assert!(id3 != id2);
   assert!(id3 != id1);
 
-  // Id-s from `IdVec`-s of different types cannot mixed with compile-time
+  // Id-s from `IdSlab`-s of different types cannot mixed with compile-time
   // checks.
   let str_id: Id<&'static str> = id_vec_str.insert("hello");
   assert_eq!(id_vec_str[str_id], "hello")

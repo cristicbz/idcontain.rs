@@ -1,3 +1,6 @@
+use std::cmp::Ordering;
+use std::fmt::{Debug, Formatter, Result as FmtResult};
+use std::hash::{Hash, Hasher};
 use std::mem;
 use std::option::IntoIter as OptionIntoIter;
 use super::Id;
@@ -7,7 +10,6 @@ use super::Id;
 /// Internally, `None` is represented as `Id::invalid()`. An `OptionId<T>` implements conversion to
 /// and from an `Option<Id<T>>`, but it also forwards all the methods that `Option<T>` does, for
 /// convenience.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Default)]
 pub struct OptionId<T>(Id<T>);
 
 impl<T> Into<Option<Id<T>>> for OptionId<T> {
@@ -170,5 +172,58 @@ impl<T> OptionId<T> {
     #[inline]
     pub fn take(&mut self) -> Self {
         OptionId(mem::replace(&mut self.0, Id::invalid()))
+    }
+}
+
+impl<T> Debug for OptionId<T> {
+    fn fmt(&self, formatter: &mut Formatter) -> FmtResult {
+        if self.is_some() {
+            write!(formatter, "Some({:?})", self.0)
+        } else {
+            write!(formatter, "None")
+        }
+    }
+}
+
+impl<T> Hash for OptionId<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state)
+    }
+}
+
+impl<T> PartialOrd for OptionId<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<T> PartialEq for OptionId<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+
+    fn ne(&self, other: &Self) -> bool {
+        self.0 != other.0
+    }
+}
+
+impl<T> Ord for OptionId<T> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.cmp(&other.0)
+    }
+}
+
+impl<T> Clone for OptionId<T> {
+    fn clone(&self) -> Self {
+        OptionId(self.0)
+    }
+}
+
+impl<T> Copy for OptionId<T> {}
+impl<T> Eq for OptionId<T> {}
+
+impl<T> Default for OptionId<T> {
+    fn default() -> Self {
+        Self::none()
     }
 }

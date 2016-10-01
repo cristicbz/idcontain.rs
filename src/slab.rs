@@ -4,10 +4,7 @@ use std::u32;
 use std::slice::{Iter as SliceIter, IterMut as SliceIterMut};
 use std::ops::{Index, IndexMut};
 use std::marker::PhantomData;
-use super::id::{Id, IdIndex, IdTag};
-
-/// The maximum size of an `IdSlab`.
-pub const MAXIMUM_CAPACITY: usize = u32::MAX as usize - 1;
+use super::id::{Id, IdIndex, IdTag, MAXIMUM_CAPACITY};
 
 
 #[derive(Debug, Clone)]
