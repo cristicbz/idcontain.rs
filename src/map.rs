@@ -19,6 +19,10 @@ impl<E, F: Flat> IdMap<E, F> {
         }
     }
 
+    pub fn len(&self) -> usize {
+        self.reverse_lookup.len()
+    }
+
     pub fn with_capacity(capacity: usize) -> Self {
         assert!(capacity <= MAXIMUM_CAPACITY);
         IdMap {
