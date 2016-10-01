@@ -110,37 +110,37 @@ impl<'a, T> FlatAccessMut for &'a mut Vec<T> {
 }
 
 #[macro_export]
-macro_rules! define_flat {
+macro_rules! derive_flat {
     (
         #[element($element:ident, & $element_ref:ident, &mut $element_ref_mut:ident)]
         #[access(& $access:ident, &mut $access_mut:ident)]
         pub struct $struct_name:ident {
             $(#[element($element_field:ident)]
-              pub $field:ident : Vec<$field_type:ty>,)+
+              pub $field:ident : $field_type:ty,)+
         }
     ) => {
         pub struct $struct_name {
-            pub $($field : Vec<$field_type>,)+
+            pub $($field : $field_type,)+
         }
 
         pub struct $element {
-            pub $($element_field : $field_type,)+
+            pub $($element_field : <$field_type as $crate::Flat>::Element,)+
         }
 
         pub struct $element_ref <'a> {
-            pub $($element_field : &'a $field_type,)+
+            pub $($element_field : <&'a $field_type as $crate::FlatGet>::ElementRef,)+
         }
 
         pub struct $element_ref_mut <'a> {
-            pub $($element_field : &'a mut $field_type,)+
+            pub $($element_field : <&'a mut $field_type as $crate::FlatGetMut>::ElementRefMut,)+
         }
 
         pub struct $access <'a> {
-            pub $($field : &'a [$field_type],)+
+            pub $($field : <&'a $field_type as $crate::FlatAccess>::Access,)+
         }
 
         pub struct $access_mut <'a> {
-            pub $($field : &'a mut [$field_type],)+
+            pub $($field : <&'a mut $field_type as $crate::FlatAccessMut>::AccessMut,)+
         }
 
         impl $crate::Flat for $struct_name {
