@@ -120,27 +120,37 @@ macro_rules! derive_flat {
         }
     ) => {
         pub struct $struct_name {
-            pub $($field : $field_type,)+
+            $(pub $field : $field_type,)+
         }
 
+        #[allow(dead_code)]
+        #[allow(unused_variables)]
         pub struct $element {
-            pub $($element_field : <$field_type as $crate::Flat>::Element,)+
+            $(pub $element_field : <$field_type as $crate::Flat>::Element,)+
         }
 
+        #[allow(dead_code)]
+        #[allow(unused_variables)]
         pub struct $element_ref <'a> {
-            pub $($element_field : <&'a $field_type as $crate::FlatGet>::ElementRef,)+
+            $(pub $element_field : <&'a $field_type as $crate::FlatGet>::ElementRef,)+
         }
 
+        #[allow(dead_code)]
+        #[allow(unused_variables)]
         pub struct $element_ref_mut <'a> {
-            pub $($element_field : <&'a mut $field_type as $crate::FlatGetMut>::ElementRefMut,)+
+            $(pub $element_field : <&'a mut $field_type as $crate::FlatGetMut>::ElementRefMut,)+
         }
 
+        #[allow(dead_code)]
+        #[allow(unused_variables)]
         pub struct $access <'a> {
-            pub $($field : <&'a $field_type as $crate::FlatAccess>::Access,)+
+            $(pub $field : <&'a $field_type as $crate::FlatAccess>::Access,)+
         }
 
+        #[allow(dead_code)]
+        #[allow(unused_variables)]
         pub struct $access_mut <'a> {
-            pub $($field : <&'a mut $field_type as $crate::FlatAccessMut>::AccessMut,)+
+            $(pub $field : <&'a mut $field_type as $crate::FlatAccessMut>::AccessMut,)+
         }
 
         impl $crate::Flat for $struct_name {
@@ -179,6 +189,8 @@ macro_rules! derive_flat {
             }
 
             #[inline]
+            #[allow(dead_code)]
+            #[allow(unused_variables)]
             fn swap_remove(&mut self, index: usize) -> Option<Self::Element> {
                 match ($($crate::Flat::swap_remove(&mut self.$field, index),)+) {
                     ($(Some($element_field),)+) => Some($element {
@@ -196,9 +208,11 @@ macro_rules! derive_flat {
         }
 
 
-        impl<'a> FlatGet for &'a $struct_name {
+        impl<'a> $crate::FlatGet for &'a $struct_name {
             type ElementRef = $element_ref <'a>;
 
+            #[allow(dead_code)]
+            #[allow(unused_variables)]
             fn flat_get(self, index: usize) -> Option<Self::ElementRef> {
                 match ($($crate::FlatGet::flat_get(&self.$field, index),)+) {
                     ($(Some($element_field),)+) => Some($element_ref {
@@ -210,9 +224,11 @@ macro_rules! derive_flat {
             }
         }
 
-        impl<'a> FlatGetMut for &'a mut $struct_name {
+        impl<'a> $crate::FlatGetMut for &'a mut $struct_name {
             type ElementRefMut = $element_ref_mut <'a>;
 
+            #[allow(dead_code)]
+            #[allow(unused_variables)]
             fn flat_get_mut(self, index: usize) -> Option<Self::ElementRefMut> {
                 match ($($crate::FlatGetMut::flat_get_mut(&mut self.$field, index),)+) {
                     ($(Some($element_field),)+) => Some($element_ref_mut {
@@ -224,7 +240,7 @@ macro_rules! derive_flat {
             }
         }
 
-        impl<'a> FlatAccess for &'a $struct_name {
+        impl<'a> $crate::FlatAccess for &'a $struct_name {
             type Access = $access <'a>;
 
             fn flat_access(self) -> Self::Access {
@@ -234,7 +250,7 @@ macro_rules! derive_flat {
             }
         }
 
-        impl<'a> FlatAccessMut for &'a mut $struct_name {
+        impl<'a> $crate::FlatAccessMut for &'a mut $struct_name {
             type AccessMut = $access_mut <'a>;
 
             fn flat_access_mut(self) -> Self::AccessMut {
