@@ -432,6 +432,90 @@ impl<T> IdSlab<T> {
             tagged_slot @ _ => Err(tagged_slot),
         }
     }
+
+    /// Returns a reference to an element by index or `None` if it doesn't exist.
+    ///
+    /// This is a low-level operation that bypasses the tag check. Useful for building other
+    /// containers on top.
+    ///
+    /// Panics
+    /// ---
+    /// None.
+    ///
+    /// Example
+    /// ---
+    /// ```
+    /// # use idcontain::IdSlab;
+    /// let mut id_slab = IdSlab::new();
+    /// let id = id_slab.insert(1);
+    ///
+    /// assert_eq!(id_slab.by_index(0), Some(&1));
+    /// ```
+    pub fn by_index(&self, index: IdIndex) -> Option<&T> {
+        match self.slots.get(index as usize) {
+            Some(&TaggedSlot { slot: Slot::Occupied { ref value }, .. }) => Some(value),
+            _ => None,
+        }
+    }
+
+    /// Returns a mutable reference to an element by index or `None` if it doesn't exist.
+    ///
+    /// This is a low-level operation that bypasses the tag check. Useful for building other
+    /// containers on top.
+    ///
+    /// Panics
+    /// ---
+    /// None.
+    ///
+    /// Example
+    /// ---
+    /// ```
+    /// # use idcontain::IdSlab;
+    /// let mut id_slab = IdSlab::new();
+    /// let id = id_slab.insert(1);
+    ///
+    /// *id_slab.by_index_mut(0).unwrap() = 10;
+    /// assert_eq!(id_slab[id], 10);
+    /// ```
+    pub fn by_index_mut(&mut self, index: IdIndex) -> Option<&mut T> {
+        match self.slots.get_mut(index as usize) {
+            Some(&mut TaggedSlot { slot: Slot::Occupied { ref mut value }, .. }) => Some(value),
+            _ => None,
+        }
+    }
+
+    /// Returns the `Id` for a given occupied index.
+    ///
+    /// Returns `None` if the index is invalid.
+    ///
+    /// This is a low-level operation that bypasses the tag check. Useful for building other
+    /// containers on top.
+    ///
+    /// Panics
+    /// ---
+    /// None.
+    ///
+    /// Example
+    /// ---
+    /// ```
+    /// # use idcontain::IdSlab;
+    /// let mut id_slab = IdSlab::new();
+    /// let id = id_slab.insert(1);
+    ///
+    /// assert_eq!(id_slab.index_to_id(0), id);
+    /// ```
+    pub fn index_to_id(&self, index: IdIndex) -> Option<Id<T>> {
+        match self.slots.get(index as usize) {
+            Some(&TaggedSlot { slot: Slot::Occupied { .. }, tag }) => {
+                Some(Id {
+                    index: index,
+                    tag: tag,
+                    _data: PhantomData,
+                })
+            }
+            _ => None,
+        }
+    }
 }
 
 #[cold]

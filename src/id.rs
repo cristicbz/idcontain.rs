@@ -62,6 +62,29 @@ impl<T> Id<T> {
             _data: PhantomData,
         }
     }
+
+    /// Casts the `Id` to an `Id` of a different type.
+    ///
+    /// This is handy when using `IdSlab` to generate proxy `Id`-s for an `IdMap`.
+    ///
+    /// Panics
+    /// ---
+    /// None.
+    ///
+    /// Example
+    /// ---
+    /// ```
+    /// # use idcontain::{IdSlab, Id};
+    /// let id_slab: IdSlab<()> = IdSlab::new();
+    /// let id: Id<u32> = id_slab.insert(()).cast();
+    /// ```
+    pub fn cast<U>(self) -> Id<U> {
+        Id {
+            index: self.index,
+            tag: self.tag,
+            _data: PhantomData,
+        }
+    }
 }
 
 impl<T> Debug for Id<T> {
