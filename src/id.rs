@@ -75,7 +75,7 @@ impl<T> Id<T> {
     /// ---
     /// ```
     /// # use idcontain::{IdSlab, Id};
-    /// let id_slab: IdSlab<()> = IdSlab::new();
+    /// let mut id_slab: IdSlab<()> = IdSlab::new();
     /// let id: Id<u32> = id_slab.insert(()).cast();
     /// ```
     pub fn cast<U>(self) -> Id<U> {

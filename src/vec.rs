@@ -1,4 +1,3 @@
-use super::map::IdMap;
 use super::slab::IdSlab;
 use super::id::{Id, IdIndex, MAXIMUM_CAPACITY};
 use flat::{FlatAccess, FlatAccessMut, Flat, FlatGet, FlatGetMut};

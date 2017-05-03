@@ -502,7 +502,7 @@ impl<T> IdSlab<T> {
     /// let mut id_slab = IdSlab::new();
     /// let id = id_slab.insert(1);
     ///
-    /// assert_eq!(id_slab.index_to_id(0), id);
+    /// assert_eq!(id_slab.index_to_id(0), Some(id));
     /// ```
     pub fn index_to_id(&self, index: IdIndex) -> Option<Id<T>> {
         match self.slots.get(index as usize) {
