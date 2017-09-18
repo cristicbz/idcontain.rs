@@ -1,8 +1,7 @@
 [package]
 authors = ["Cristi Cobzarenco <cristi.cobzarenco@gmail.com>"]
 name = "idcontain"
-version = "0.7.1"
-build = "build.rs"
+version = "0.7.2"
 
 description = "Generational (or tagged) ID-based containers."
 homepage = "https://github.com/cristicbz/idcontain.rs"
@@ -14,9 +13,3 @@ license = "MIT/Apache-2.0"
 
 [dependencies]
 rand = "0.3.15"
-
-[build-dependencies]
-skeptic = "0.9"
-
-[dev-dependencies]
-skeptic = "0.9"
