@@ -34,7 +34,11 @@ impl<E, F: Flat> IdMap<E, F> {
 
     #[inline]
     pub fn insert(&mut self, id: Id<E>, mut element: F::Element) -> Option<F::Element> {
-        let IdMap { ref mut lookup, ref mut reverse_lookup, ref mut flat } = *self;
+        let IdMap {
+            ref mut lookup,
+            ref mut reverse_lookup,
+            ref mut flat,
+        } = *self;
         let new_index = {
             let len = reverse_lookup.len();
             assert!(len <= MAXIMUM_CAPACITY);
@@ -60,7 +64,10 @@ impl<E, F: Flat> IdMap<E, F> {
             lookup.resize(usize_index + 1, Id::invalid());
             &mut lookup[usize_index]
         };
-        *lookup_id = Id { index: new_index, ..id };
+        *lookup_id = Id {
+            index: new_index,
+            ..id
+        };
         reverse_lookup.push(id.index);
         flat.push(element);
         None
@@ -68,7 +75,11 @@ impl<E, F: Flat> IdMap<E, F> {
 
     #[inline]
     pub fn remove(&mut self, id: Id<E>) -> Option<F::Element> {
-        let IdMap { ref mut lookup, ref mut reverse_lookup, ref mut flat } = *self;
+        let IdMap {
+            ref mut lookup,
+            ref mut reverse_lookup,
+            ref mut flat,
+        } = *self;
 
         let usize_index = id.index as usize;
         let lookup_index = match lookup.get_mut(usize_index) {
@@ -88,14 +99,38 @@ impl<E, F: Flat> IdMap<E, F> {
             None => return None,
         };
         reverse_lookup.swap_remove(usize_lookup_index);
-        reverse_lookup.get(usize_lookup_index)
-            .map(|&reverse_index| lookup[reverse_index as usize].index = lookup_index);
+        reverse_lookup.get(usize_lookup_index).map(
+            |&reverse_index| {
+                lookup[reverse_index as usize].index = lookup_index
+            },
+        );
+        Some(old_value)
+    }
+
+    #[inline]
+    pub fn remove_by_index(&mut self, index: usize) -> Option<F::Element> {
+        let IdMap {
+            ref mut lookup,
+            ref mut reverse_lookup,
+            ref mut flat,
+        } = *self;
+        let old_value = match flat.swap_remove(index) {
+            Some(old_value) => old_value,
+            None => return None,
+        };
+        reverse_lookup.swap_remove(index);
+        reverse_lookup.get(index).map(
+            |&reverse_index| {
+                lookup[reverse_index as usize].index = index as u32;
+            },
+        );
         Some(old_value)
     }
 
     #[inline]
     pub fn get<'a>(&'a self, id: Id<E>) -> Option<<&'a F as FlatGet>::ElementRef>
-        where &'a F: FlatGet
+    where
+        &'a F: FlatGet,
     {
         match self.lookup.get(id.index as usize) {
             Some(lookup_id) if lookup_id.tag == id.tag => {
@@ -107,13 +142,45 @@ impl<E, F: Flat> IdMap<E, F> {
 
     #[inline]
     pub fn get_mut<'a>(&'a mut self, id: Id<E>) -> Option<<&'a mut F as FlatGetMut>::ElementRefMut>
-        where &'a mut F: FlatGetMut
+    where
+        &'a mut F: FlatGetMut,
     {
         match self.lookup.get(id.index as usize) {
             Some(lookup_id) if lookup_id.tag == id.tag => {
                 self.flat.flat_get_mut(lookup_id.index as usize)
             }
             _ => None,
+        }
+    }
+
+    #[inline]
+    pub fn get_by_index<'a>(&'a self, index: usize) -> Option<<&'a F as FlatGet>::ElementRef>
+    where
+        &'a F: FlatGet,
+    {
+        self.flat.flat_get(index)
+    }
+
+    #[inline]
+    pub fn get_mut_by_index<'a>(
+        &'a mut self,
+        index: usize,
+    ) -> Option<<&'a mut F as FlatGetMut>::ElementRefMut>
+    where
+        &'a mut F: FlatGetMut,
+    {
+        self.flat.flat_get_mut(index)
+    }
+
+    #[inline]
+    pub fn swap_indices(&mut self, index_a: usize, index_b: usize) -> bool {
+        if self.flat.swap(index_a, index_b) {
+            self.reverse_lookup.swap(index_a, index_b);
+            self.lookup[self.reverse_lookup[index_a] as usize].index = index_a as IdIndex;
+            self.lookup[self.reverse_lookup[index_b] as usize].index = index_b as IdIndex;
+            true
+        } else {
+            false
         }
     }
 
@@ -129,7 +196,10 @@ impl<E, F: Flat> IdMap<E, F> {
     pub fn index_to_id(&self, index: usize) -> Option<Id<E>> {
         match self.reverse_lookup.get(index) {
             Some(&lookup_index) => {
-                Some(Id { index: lookup_index, ..self.lookup[lookup_index as usize] })
+                Some(Id {
+                    index: lookup_index,
+                    ..self.lookup[lookup_index as usize]
+                })
             }
             _ => None,
         }
@@ -137,14 +207,16 @@ impl<E, F: Flat> IdMap<E, F> {
 
     #[inline]
     pub fn access<'a>(&'a self) -> <&'a F as FlatAccess>::Access
-        where &'a F: FlatAccess
+    where
+        &'a F: FlatAccess,
     {
         self.flat.flat_access()
     }
 
     #[inline]
     pub fn access_mut<'a>(&'a mut self) -> <&'a mut F as FlatAccessMut>::AccessMut
-        where &'a mut F: FlatAccessMut
+    where
+        &'a mut F: FlatAccessMut,
     {
         self.flat.flat_access_mut()
     }
@@ -236,5 +308,50 @@ mod tests {
         assert_eq!(map.get(id2), Some(&20));
         assert_eq!(map.remove(id2), Some(20));
         assert_eq!(map.get(id2), None);
+    }
+
+    #[test]
+    fn swap() {
+        let (mut slab, mut map) = setup();
+        let id1 = slab.insert(());
+        let id2 = slab.insert(());
+
+        assert_eq!(map.insert(id1, 1), None);
+        assert_eq!(map.insert(id2, 2), None);
+
+        let i1 = map.id_to_index(id1).unwrap();
+        let i2 = map.id_to_index(id2).unwrap();
+        map.swap_indices(i1, i2);
+
+        assert_eq!(map.id_to_index(id1), Some(i2));
+        assert_eq!(map.id_to_index(id2), Some(i1));
+
+        assert_eq!(map.get_by_index(i1), Some(&2));
+        assert_eq!(map.get_by_index(i2), Some(&1));
+
+        assert_eq!(map.get(id1), Some(&1));
+        assert_eq!(map.get(id2), Some(&2));
+
+        let id3 = slab.insert(());
+        assert_eq!(map.insert(id3, 3), None);
+
+        assert_eq!(map.get(id1), Some(&1));
+        assert_eq!(map.get(id2), Some(&2));
+        assert_eq!(map.get(id3), Some(&3));
+
+        assert_eq!(map.remove(id1), Some(1));
+        assert_eq!(map.get(id1), None);
+        assert_eq!(map.get(id2), Some(&2));
+        assert_eq!(map.get(id3), Some(&3));
+
+        assert_eq!(map.remove(id2), Some(2));
+        assert_eq!(map.get(id1), None);
+        assert_eq!(map.get(id2), None);
+        assert_eq!(map.get(id3), Some(&3));
+
+        assert_eq!(map.remove(id3), Some(3));
+        assert_eq!(map.get(id1), None);
+        assert_eq!(map.get(id2), None);
+        assert_eq!(map.get(id3), None);
     }
 }

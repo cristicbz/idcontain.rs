@@ -6,11 +6,13 @@ pub trait Flat: Sized {
     fn new() -> Self;
     fn with_capacity(capacity: usize) -> Self;
 
+    fn swap(&mut self, index_a: usize, index_b: usize) -> bool;
     fn swap_remove(&mut self, index: usize) -> Option<Self::Element>;
-    fn replace(&mut self,
-               index: usize,
-               element: Self::Element)
-               -> Result<Self::Element, Self::Element>;
+    fn replace(
+        &mut self,
+        index: usize,
+        element: Self::Element,
+    ) -> Result<Self::Element, Self::Element>;
 
     fn push(&mut self, element: Self::Element);
 }
@@ -50,13 +52,24 @@ impl<T> Flat for Vec<T> {
     }
 
     #[inline]
-    fn replace(&mut self,
-               index: usize,
-               element: Self::Element)
-               -> Result<Self::Element, Self::Element> {
+    fn replace(
+        &mut self,
+        index: usize,
+        element: Self::Element,
+    ) -> Result<Self::Element, Self::Element> {
         match self.get_mut(index) {
             Some(old) => Ok(mem::replace(old, element)),
             None => Err(element),
+        }
+    }
+
+    #[inline]
+    fn swap(&mut self, index_a: usize, index_b: usize) -> bool {
+        if index_a < self.len() && index_b < self.len() {
+            self.as_mut_slice().swap(index_a, index_b);
+            true
+        } else {
+            false
         }
     }
 
@@ -174,7 +187,7 @@ macro_rules! derive_flat {
             fn replace(&mut self,
                        index: usize,
                        element: Self::Element)
-                       -> Result<Self::Element, Self::Element> {
+                       -> ::std::result::Result<Self::Element, Self::Element> {
                 match ($($crate::Flat::replace(&mut self.$field,
                                                index,
                                                element.$element_field),)+) {
@@ -199,6 +212,18 @@ macro_rules! derive_flat {
                     ($($element_field@None,)+) => None,
                     _ => panic!("out of lockstep derived flat in `swap_remove`"),
                 }
+            }
+
+            #[inline]
+            #[allow(dead_code)]
+            #[allow(unused_variables)]
+            fn swap(&mut self, index_a: usize, index_b: usize) -> bool {
+                $(
+                    if !$crate::Flat::swap(&mut self.$field, index_a, index_b) {
+                        return false;
+                    }
+                )+
+                true
             }
 
             #[inline]

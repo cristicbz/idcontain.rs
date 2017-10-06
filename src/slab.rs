@@ -6,20 +6,6 @@ use std::ops::{Index, IndexMut};
 use std::marker::PhantomData;
 use super::id::{Id, IdIndex, IdTag, MAXIMUM_CAPACITY};
 
-
-#[derive(Debug, Clone)]
-enum Slot<T> {
-    Free { next_free: IdIndex },
-    Occupied { value: T },
-}
-
-#[derive(Debug, Clone)]
-struct TaggedSlot<T> {
-    tag: IdTag,
-    slot: Slot<T>,
-}
-
-
 /// An `IdSlab` stores an unordered collection of elements with fast access by opaque `Id`-s.
 ///
 /// Inserting an element returns an `Id` which may later be used for lookup and deletion. It
@@ -702,6 +688,20 @@ impl<'a, T: 'a> IntoIterator for &'a mut IdSlab<T> {
         self.iter_mut()
     }
 }
+
+
+#[derive(Debug, Clone)]
+enum Slot<T> {
+    Free { next_free: IdIndex },
+    Occupied { value: T },
+}
+
+#[derive(Debug, Clone)]
+struct TaggedSlot<T> {
+    tag: IdTag,
+    slot: Slot<T>,
+}
+
 
 
 #[cfg(test)]

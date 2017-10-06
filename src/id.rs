@@ -89,10 +89,7 @@ impl<T> Id<T> {
 
 impl<T> Debug for Id<T> {
     fn fmt(&self, formatter: &mut Formatter) -> FmtResult {
-        write!(formatter,
-               "Id {{ index: {:?}, tag: {:?} }}",
-               self.index,
-               self.tag)
+        write!(formatter, "{}.{:x}", self.index, self.tag)
     }
 }
 
@@ -128,7 +125,7 @@ impl<T> Clone for Id<T> {
     fn clone(&self) -> Self {
         Id {
             index: self.index,
-            tag: self.index,
+            tag: self.tag,
             _data: PhantomData,
         }
     }
