@@ -23,6 +23,10 @@ impl<E, F: Flat> IdMap<E, F> {
         self.reverse_lookup.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.reverse_lookup.is_empty()
+    }
+
     pub fn with_capacity(capacity: usize) -> Self {
         assert!(capacity <= MAXIMUM_CAPACITY);
         IdMap {
@@ -218,6 +222,12 @@ impl<E, F: Flat> IdMap<E, F> {
         &'a mut F: FlatAccessMut,
     {
         self.flat.flat_access_mut()
+    }
+}
+
+impl<E, F: Flat> Default for IdMap<E, F> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

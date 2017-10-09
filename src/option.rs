@@ -30,7 +30,7 @@ impl<T> From<Option<Id<T>>> for OptionId<T> {
 impl<T> OptionId<T> {
     #[inline]
     pub fn some(id: Id<T>) -> Self {
-        assert!(id != Id::invalid());
+        assert_ne!(id, Id::invalid());
         OptionId(id)
     }
 
@@ -85,7 +85,8 @@ impl<T> OptionId<T> {
 
     #[inline]
     pub fn unwrap_or_else<F>(self, f: F) -> Id<T>
-        where F: FnOnce() -> Id<T>
+    where
+        F: FnOnce() -> Id<T>,
     {
         self.into_option().unwrap_or_else(f)
     }
@@ -93,7 +94,8 @@ impl<T> OptionId<T> {
 
     #[inline]
     pub fn map<U, F>(self, f: F) -> Option<U>
-        where F: FnOnce(Id<T>) -> U
+    where
+        F: FnOnce(Id<T>) -> U,
     {
         self.into_option().map(f)
     }
@@ -101,7 +103,8 @@ impl<T> OptionId<T> {
 
     #[inline]
     pub fn map_or<U, F>(self, default: U, f: F) -> U
-        where F: FnOnce(Id<T>) -> U
+    where
+        F: FnOnce(Id<T>) -> U,
     {
         self.into_option().map_or(default, f)
     }
@@ -109,8 +112,9 @@ impl<T> OptionId<T> {
 
     #[inline]
     pub fn map_or_else<U, D, F>(self, default: D, f: F) -> U
-        where D: FnOnce() -> U,
-              F: FnOnce(Id<T>) -> U
+    where
+        D: FnOnce() -> U,
+        F: FnOnce(Id<T>) -> U,
     {
         self.into_option().map_or_else(default, f)
     }
@@ -123,7 +127,8 @@ impl<T> OptionId<T> {
 
     #[inline]
     pub fn ok_or_else<E, F>(self, err: F) -> Result<Id<T>, E>
-        where F: FnOnce() -> E
+    where
+        F: FnOnce() -> E,
     {
         self.into_option().ok_or_else(err)
     }
@@ -141,30 +146,34 @@ impl<T> OptionId<T> {
 
     #[inline]
     pub fn and<U, O>(self, optb: O) -> Option<U>
-        where O: Into<Option<U>>
+    where
+        O: Into<Option<U>>,
     {
-        self.into_option().and(optb.into())
+        self.into_option().and_then(|_| optb.into())
     }
 
     #[inline]
     pub fn and_then<U, O, F>(self, f: F) -> Option<U>
-        where F: FnOnce(Id<T>) -> O,
-              O: Into<Option<U>>
+    where
+        F: FnOnce(Id<T>) -> O,
+        O: Into<Option<U>>,
     {
         self.into_option().and_then(|id| f(id).into())
     }
 
     #[inline]
     pub fn or<O>(self, optb: O) -> Option<Id<T>>
-        where O: Into<Option<Id<T>>>
+    where
+        O: Into<Option<Id<T>>>,
     {
-        self.into_option().or(optb.into())
+        self.into_option().or_else(|| optb.into())
     }
 
     #[inline]
     pub fn or_else<F, O>(self, f: F) -> Option<Id<T>>
-        where F: FnOnce() -> O,
-              O: Into<Option<Id<T>>>
+    where
+        F: FnOnce() -> O,
+        O: Into<Option<Id<T>>>,
     {
         self.into_option().or_else(|| f().into())
     }
@@ -201,10 +210,6 @@ impl<T> PartialEq for OptionId<T> {
     fn eq(&self, other: &Self) -> bool {
         self.0 == other.0
     }
-
-    fn ne(&self, other: &Self) -> bool {
-        self.0 != other.0
-    }
 }
 
 impl<T> Ord for OptionId<T> {
@@ -213,6 +218,7 @@ impl<T> Ord for OptionId<T> {
     }
 }
 
+#[cfg_attr(feature = "cargo-clippy", allow(expl_impl_clone_on_copy))]
 impl<T> Clone for OptionId<T> {
     fn clone(&self) -> Self {
         OptionId(self.0)

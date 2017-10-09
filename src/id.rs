@@ -109,10 +109,6 @@ impl<T> PartialEq for Id<T> {
     fn eq(&self, other: &Self) -> bool {
         self.tag == other.tag && self.index == other.index
     }
-
-    fn ne(&self, other: &Self) -> bool {
-        self.tag != other.tag || self.index != other.index
-    }
 }
 
 impl<T> Ord for Id<T> {
@@ -121,6 +117,7 @@ impl<T> Ord for Id<T> {
     }
 }
 
+#[cfg_attr(feature = "cargo-clippy", allow(expl_impl_clone_on_copy))]
 impl<T> Clone for Id<T> {
     fn clone(&self) -> Self {
         Id {

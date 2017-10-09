@@ -32,22 +32,32 @@ impl<F: Flat> IdVec<F> {
     }
 
     #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.ids.is_empty()
+    }
+
+    #[inline]
     pub fn contains(&self, id: Id<F::Element>) -> bool {
         self.ids.contains(id.cast())
     }
 
     #[inline]
     pub fn get<'a>(&'a self, id: Id<F::Element>) -> Option<<&'a F as FlatGet>::ElementRef>
-        where &'a F: FlatGet
+    where
+        &'a F: FlatGet,
     {
-        self.ids.get(id.cast()).and_then(|&index| self.flat.flat_get(index as usize))
+        self.ids.get(id.cast()).and_then(|&index| {
+            self.flat.flat_get(index as usize)
+        })
     }
 
     #[inline]
-    pub fn get_mut<'a>(&'a mut self,
-                       id: Id<F::Element>)
-                       -> Option<<&'a mut F as FlatGetMut>::ElementRefMut>
-        where &'a mut F: FlatGetMut
+    pub fn get_mut<'a>(
+        &'a mut self,
+        id: Id<F::Element>,
+    ) -> Option<<&'a mut F as FlatGetMut>::ElementRefMut>
+    where
+        &'a mut F: FlatGetMut,
     {
         // Not using `.and_then` to work around borrowck.
         match self.ids.get(id.cast()) {
@@ -67,7 +77,11 @@ impl<F: Flat> IdVec<F> {
 
     #[inline]
     pub fn remove(&mut self, id: Id<F::Element>) -> Option<F::Element> {
-        let IdVec { ref mut flat, ref mut ids, ref mut reverse } = *self;
+        let IdVec {
+            ref mut flat,
+            ref mut ids,
+            ref mut reverse,
+        } = *self;
         ids.remove(id.cast()).and_then(|index| {
             *ids.by_index_mut(reverse.swap_remove(index as usize))
                 .expect("reverse out of sync with ids in `remove`") = index;
@@ -84,10 +98,12 @@ impl<F: Flat> IdVec<F> {
     pub fn index_to_id(&self, index: usize) -> Option<Id<F::Element>> {
         match self.reverse.get(index) {
             Some(&index) => {
-                Some(self.ids
-                    .index_to_id(index)
-                    .expect("reverse out of sync with ids in `index_to_id`")
-                    .cast())
+                Some(
+                    self.ids
+                        .index_to_id(index)
+                        .expect("reverse out of sync with ids in `index_to_id`")
+                        .cast(),
+                )
             }
             _ => None,
         }
@@ -95,15 +111,23 @@ impl<F: Flat> IdVec<F> {
 
     #[inline]
     pub fn access<'a>(&'a self) -> <&'a F as FlatAccess>::Access
-        where &'a F: FlatAccess
+    where
+        &'a F: FlatAccess,
     {
         self.flat.flat_access()
     }
 
     #[inline]
     pub fn access_mut<'a>(&'a mut self) -> <&'a mut F as FlatAccessMut>::AccessMut
-        where &'a mut F: FlatAccessMut
+    where
+        &'a mut F: FlatAccessMut,
     {
         self.flat.flat_access_mut()
+    }
+}
+
+impl<T: Flat> Default for IdVec<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }

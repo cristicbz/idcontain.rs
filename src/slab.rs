@@ -1,6 +1,5 @@
 use rand::{self, Rng};
 use std::mem;
-use std::u32;
 use std::slice::{Iter as SliceIter, IterMut as SliceIterMut};
 use std::ops::{Index, IndexMut};
 use std::marker::PhantomData;
@@ -118,7 +117,11 @@ impl<T> IdSlab<T> {
         assert!(capacity <= MAXIMUM_CAPACITY);
 
         IdSlab {
-            slots: Vec::with_capacity(capacity),
+            slots: if capacity == 0 {
+                Vec::new()
+            } else {
+                Vec::with_capacity(capacity)
+            },
             first_free: 0,
             seed_tag: seed_tag,
             len: 0,
@@ -148,6 +151,29 @@ impl<T> IdSlab<T> {
         self.len
     }
 
+    /// Returns true if the slab is empty.
+    ///
+    /// Panics
+    /// ---
+    /// None.
+    ///
+    /// Example
+    /// ---
+    /// ```
+    /// # use idcontain::IdSlab;
+    /// let mut id_slab = IdSlab::new();
+    /// assert!(id_slab.is_empty());
+    ///
+    /// let id = id_slab.insert(1);
+    /// assert!(!id_slab.is_empty());
+    ///
+    /// id_slab.remove(id);
+    /// assert!(id_slab.is_empty());
+    /// ```
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
     /// Returns `true` if there exists an element with the given `Id`.
     ///
     /// See struct-level docs for caveats about `Id` reuse and mixing (almost always fine, but
@@ -173,7 +199,10 @@ impl<T> IdSlab<T> {
     /// ```
     pub fn contains(&self, id: Id<T>) -> bool {
         match self.slots.get(id.index as usize) {
-            Some(&TaggedSlot { slot: Slot::Occupied { .. }, tag }) if tag == id.tag => true,
+            Some(&TaggedSlot {
+                     slot: Slot::Occupied { .. },
+                     tag,
+                 }) if tag == id.tag => true,
             _ => false,
         }
     }
@@ -311,23 +340,32 @@ impl<T> IdSlab<T> {
     /// assert_eq!(id_slab.remove(id1), None);
     /// ```
     pub fn remove(&mut self, id: Id<T>) -> Option<T> {
-        let IdSlab { ref mut slots, ref mut len, ref mut first_free, .. } = *self;
-        slots.get_mut(id.index as usize).and_then(|tagged_slot| if tagged_slot.tag == id.tag {
-            match mem::replace(&mut tagged_slot.slot, Slot::Free { next_free: *first_free }) {
-                Slot::Occupied { value } => {
-                    *len = len.checked_sub(1).expect("invalid len in remove()");
-                    tagged_slot.tag = tagged_slot.tag.wrapping_add(1);
-                    *first_free = id.index;
-                    Some(value)
+        let IdSlab {
+            ref mut slots,
+            ref mut len,
+            ref mut first_free,
+            ..
+        } = *self;
+        slots.get_mut(id.index as usize).and_then(
+            |tagged_slot| if tagged_slot.tag ==
+                id.tag
+            {
+                match mem::replace(&mut tagged_slot.slot, Slot::Free { next_free: *first_free }) {
+                    Slot::Occupied { value } => {
+                        *len = len.checked_sub(1).expect("invalid len in remove()");
+                        tagged_slot.tag = tagged_slot.tag.wrapping_add(1);
+                        *first_free = id.index;
+                        Some(value)
+                    }
+                    rollback @ Slot::Free { .. } => {
+                        tagged_slot.slot = rollback;
+                        None
+                    }
                 }
-                rollback @ Slot::Free { .. } => {
-                    tagged_slot.slot = rollback;
-                    None
-                }
-            }
-        } else {
-            None
-        })
+            } else {
+                None
+            },
+        )
     }
 
     /// Iterates over references to the elements in the `IdSlab`.
@@ -361,7 +399,7 @@ impl<T> IdSlab<T> {
     ///     println!("{}", i);  // Prints 1, 2, 3.
     /// }
     /// ```
-    pub fn iter<'a>(&'a self) -> Iter<'a, T> {
+    pub fn iter(&self) -> Iter<T> {
         Iter {
             num_left: self.len(),
             iter: self.slots.iter(),
@@ -393,7 +431,7 @@ impl<T> IdSlab<T> {
     ///     println!("{}", i);  // Prints 2, 3, 4.
     /// }
     /// ```
-    pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a, T> {
+    pub fn iter_mut(&mut self) -> IterMut<T> {
         IterMut {
             num_left: self.len(),
             iter: self.slots.iter_mut(),
@@ -402,20 +440,21 @@ impl<T> IdSlab<T> {
 
     fn get_or_tagged_slot(&self, id: Id<T>) -> Result<&T, Option<&TaggedSlot<T>>> {
         match self.slots.get(id.index as usize) {
-            Some(&TaggedSlot { slot: Slot::Occupied { ref value }, tag }) if tag == id.tag => {
-                Ok(value)
-            }
-            tagged_slot @ _ => Err(tagged_slot),
+            Some(&TaggedSlot {
+                     slot: Slot::Occupied { ref value },
+                     tag,
+                 }) if tag == id.tag => Ok(value),
+            tagged_slot => Err(tagged_slot),
         }
     }
 
     fn get_mut_or_tagged_slot(&mut self, id: Id<T>) -> Result<&mut T, Option<&mut TaggedSlot<T>>> {
         match self.slots.get_mut(id.index as usize) {
-            Some(&mut TaggedSlot { slot: Slot::Occupied { ref mut value }, tag }) if tag ==
-                                                                                     id.tag => {
-                Ok(value)
-            }
-            tagged_slot @ _ => Err(tagged_slot),
+            Some(&mut TaggedSlot {
+                     slot: Slot::Occupied { ref mut value },
+                     tag,
+                 }) if tag == id.tag => Ok(value),
+            tagged_slot => Err(tagged_slot),
         }
     }
 
@@ -492,7 +531,10 @@ impl<T> IdSlab<T> {
     /// ```
     pub fn index_to_id(&self, index: IdIndex) -> Option<Id<T>> {
         match self.slots.get(index as usize) {
-            Some(&TaggedSlot { slot: Slot::Occupied { .. }, tag }) => {
+            Some(&TaggedSlot {
+                     slot: Slot::Occupied { .. },
+                     tag,
+                 }) => {
                 Some(Id {
                     index: index,
                     tag: tag,
@@ -504,59 +546,76 @@ impl<T> IdSlab<T> {
     }
 }
 
+impl<T> Default for IdSlab<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[cold]
 #[inline(never)]
-fn panic_for_bad_id<'a, T: 'a>(num_slots: usize,
-                               seed_tag: IdTag,
-                               len: usize,
-                               tagged_slot: Option<&'a TaggedSlot<T>>,
-                               id: Id<T>)
-                               -> ! {
+fn panic_for_bad_id<T>(
+    num_slots: usize,
+    seed_tag: IdTag,
+    len: usize,
+    tagged_slot: Option<&TaggedSlot<T>>,
+    id: Id<T>,
+) -> ! {
     let reason = if id.index as usize > num_slots {
-        format!("index `{}` larger than number of slots `{}` (wrong `IdSlab`?)",
-                id.index,
-                num_slots)
+        format!(
+            "index `{}` larger than number of slots `{}` (wrong `IdSlab`?)",
+            id.index,
+            num_slots
+        )
     } else if let Some(&TaggedSlot { tag, ref slot }) = tagged_slot {
         if tag > id.tag {
             if (tag - id.tag) < 100 {
                 format!("tag `{}` older than slot tag `{}`, deleted?", id.tag, tag)
             } else {
-                format!("tag `{}` much older than slot tag `{}`, wrong `IdSlab` or deleted?",
-                        id.tag,
-                        tag)
+                format!(
+                    "tag `{}` much older than slot tag `{}`, wrong `IdSlab` or deleted?",
+                    id.tag,
+                    tag
+                )
             }
         } else if tag < id.tag {
-            format!("tag `{}` newer than slot tag `{}`, wrong `IdSlab`?",
-                    id.tag,
-                    tag)
+            format!(
+                "tag `{}` newer than slot tag `{}`, wrong `IdSlab`?",
+                id.tag,
+                tag
+            )
         } else {
             match *slot {
                 Slot::Free { .. } => {
-                    format!("tag `{}` matches, but the slot is free, wrong `IdSlab` with same \
+                    format!(
+                        "tag `{}` matches, but the slot is free, wrong `IdSlab` with same \
                              seed_tag `{}`?",
-                            id.tag,
-                            seed_tag)
+                        id.tag,
+                        seed_tag
+                    )
                 }
-                Slot::Occupied { .. } => format!("<IdSlab bug [occupied], please report!>"),
+                Slot::Occupied { .. } => "<IdSlab bug [occupied], please report!>".to_owned(),
             }
         }
     } else {
-        format!("<IdSlab bug [no TaggedSlot], please report!>")
+        "<IdSlab bug [no TaggedSlot], please report!>".to_owned()
     };
-    panic!("Invalid id: {} (id={{ index=`{}`, tag=`{}` }}, id_slab={{ num_slots=`{}`, \
+    panic!(
+        "Invalid id: {} (id={{ index=`{}`, tag=`{}` }}, id_slab={{ num_slots=`{}`, \
             seed_tag=`{}`, len=`{}` }})",
-           reason,
-           id.index,
-           id.tag,
-           num_slots,
-           seed_tag,
-           len)
+        reason,
+        id.index,
+        id.tag,
+        num_slots,
+        seed_tag,
+        len
+    )
 }
 
 impl<T> Index<Id<T>> for IdSlab<T> {
     type Output = T;
 
-    fn index<'a>(&'a self, id: Id<T>) -> &'a Self::Output {
+    fn index(&self, id: Id<T>) -> &Self::Output {
         self.get_or_tagged_slot(id).unwrap_or_else(|tagged_slot| {
             panic_for_bad_id(self.slots.len(), self.seed_tag, self.len, tagged_slot, id)
         })
@@ -567,13 +626,17 @@ impl<T> IndexMut<Id<T>> for IdSlab<T> {
     fn index_mut(&mut self, id: Id<T>) -> &mut Self::Output {
         let num_slots = self.slots.len();
         let &mut IdSlab { seed_tag, len, .. } = self;
-        self.get_mut_or_tagged_slot(id).unwrap_or_else(|tagged_slot| {
-            panic_for_bad_id(num_slots,
-                             seed_tag,
-                             len,
-                             tagged_slot.map(|tagged_slot| &*tagged_slot),
-                             id)
-        })
+        self.get_mut_or_tagged_slot(id).unwrap_or_else(
+            |tagged_slot| {
+                panic_for_bad_id(
+                    num_slots,
+                    seed_tag,
+                    len,
+                    tagged_slot.map(|tagged_slot| &*tagged_slot),
+                    id,
+                )
+            },
+        )
     }
 }
 
@@ -838,13 +901,23 @@ mod tests {
         id_slab.remove(id_a);
 
         assert_eq!(&id_slab.iter().cloned().collect::<Vec<_>>()[..], &[4, 3]);
-        assert_eq!(&id_slab.iter_mut().map(|&mut x| x).collect::<Vec<_>>()[..],
-                   &[4, 3]);
+        assert_eq!(
+            &id_slab.iter_mut().map(|&mut x| x).collect::<Vec<_>>()[..],
+            &[4, 3]
+        );
 
-        assert_eq!(&(&id_slab).into_iter().cloned().collect::<Vec<_>>()[..],
-                   &[4, 3]);
-        assert_eq!(&(&mut id_slab).into_iter().map(|&mut x| x).collect::<Vec<_>>()[..],
-                   &[4, 3]);
+        assert_eq!(
+            &(&id_slab).into_iter().cloned().collect::<Vec<_>>()[..],
+            &[4, 3]
+        );
+        assert_eq!(
+            &(&mut id_slab)
+                .into_iter()
+                .map(|&mut x| x)
+                .collect::<Vec<_>>()
+                [..],
+            &[4, 3]
+        );
     }
 
     #[test]
@@ -891,7 +964,9 @@ mod tests {
         assert_eq!(id_slab_2.remove(id_a_1), None);
         assert_eq!(id_slab_2.remove(id_b_1), None);
         assert_eq!(id_slab_2.remove(id_c_1), None);
-        assert_eq!(&id_slab_2.iter().cloned().collect::<Vec<_>>(),
-                   &[1, 2, 3, 4]);
+        assert_eq!(
+            &id_slab_2.iter().cloned().collect::<Vec<_>>(),
+            &[1, 2, 3, 4]
+        );
     }
 }
