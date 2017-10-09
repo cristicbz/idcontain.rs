@@ -118,12 +118,11 @@ impl<E, F: Flat> IdMap<E, F> {
             Some(old_value) => old_value,
             None => return None,
         };
+        lookup[reverse_lookup[index] as usize] = Id::invalid();
         reverse_lookup.swap_remove(index);
-        reverse_lookup.get(index).map(
-            |&reverse_index| {
-                lookup[reverse_index as usize].index = index as u32;
-            },
-        );
+        reverse_lookup.get(index).map(|&reverse_index| {
+            lookup[reverse_index as usize].index = index as u32;
+        });
         Some(old_value)
     }
 
