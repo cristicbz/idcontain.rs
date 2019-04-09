@@ -1,8 +1,8 @@
-use std::u32;
-use std::marker::PhantomData;
-use std::fmt::{Result as FmtResult, Formatter, Debug};
-use std::hash::{Hash, Hasher};
 use std::cmp::Ordering;
+use std::fmt::{Debug, Formatter, Result as FmtResult};
+use std::hash::{Hash, Hasher};
+use std::marker::PhantomData;
+use std::u32;
 
 /// The maximum size of id containers.
 pub const MAXIMUM_CAPACITY: usize = u32::MAX as usize - 1;

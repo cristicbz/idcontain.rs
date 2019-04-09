@@ -1,9 +1,9 @@
-use rand::{self, Rng};
-use std::mem;
-use std::slice::{Iter as SliceIter, IterMut as SliceIterMut};
-use std::ops::{Index, IndexMut};
-use std::marker::PhantomData;
 use super::id::{Id, IdIndex, IdTag, MAXIMUM_CAPACITY};
+use rand::{self, Rng};
+use std::marker::PhantomData;
+use std::mem;
+use std::ops::{Index, IndexMut};
+use std::slice::{Iter as SliceIter, IterMut as SliceIterMut};
 
 /// An `IdSlab` stores an unordered collection of elements with fast access by opaque `Id`-s.
 ///
@@ -200,9 +200,9 @@ impl<T> IdSlab<T> {
     pub fn contains(&self, id: Id<T>) -> bool {
         match self.slots.get(id.index as usize) {
             Some(&TaggedSlot {
-                     slot: Slot::Occupied { .. },
-                     tag,
-                 }) if tag == id.tag => true,
+                slot: Slot::Occupied { .. },
+                tag,
+            }) if tag == id.tag => true,
             _ => false,
         }
     }
@@ -346,11 +346,14 @@ impl<T> IdSlab<T> {
             ref mut first_free,
             ..
         } = *self;
-        slots.get_mut(id.index as usize).and_then(
-            |tagged_slot| if tagged_slot.tag ==
-                id.tag
-            {
-                match mem::replace(&mut tagged_slot.slot, Slot::Free { next_free: *first_free }) {
+        slots.get_mut(id.index as usize).and_then(|tagged_slot| {
+            if tagged_slot.tag == id.tag {
+                match mem::replace(
+                    &mut tagged_slot.slot,
+                    Slot::Free {
+                        next_free: *first_free,
+                    },
+                ) {
                     Slot::Occupied { value } => {
                         *len = len.checked_sub(1).expect("invalid len in remove()");
                         tagged_slot.tag = tagged_slot.tag.wrapping_add(1);
@@ -364,8 +367,8 @@ impl<T> IdSlab<T> {
                 }
             } else {
                 None
-            },
-        )
+            }
+        })
     }
 
     /// Iterates over references to the elements in the `IdSlab`.
@@ -441,9 +444,9 @@ impl<T> IdSlab<T> {
     fn get_or_tagged_slot(&self, id: Id<T>) -> Result<&T, Option<&TaggedSlot<T>>> {
         match self.slots.get(id.index as usize) {
             Some(&TaggedSlot {
-                     slot: Slot::Occupied { ref value },
-                     tag,
-                 }) if tag == id.tag => Ok(value),
+                slot: Slot::Occupied { ref value },
+                tag,
+            }) if tag == id.tag => Ok(value),
             tagged_slot => Err(tagged_slot),
         }
     }
@@ -451,9 +454,9 @@ impl<T> IdSlab<T> {
     fn get_mut_or_tagged_slot(&mut self, id: Id<T>) -> Result<&mut T, Option<&mut TaggedSlot<T>>> {
         match self.slots.get_mut(id.index as usize) {
             Some(&mut TaggedSlot {
-                     slot: Slot::Occupied { ref mut value },
-                     tag,
-                 }) if tag == id.tag => Ok(value),
+                slot: Slot::Occupied { ref mut value },
+                tag,
+            }) if tag == id.tag => Ok(value),
             tagged_slot => Err(tagged_slot),
         }
     }
@@ -478,7 +481,10 @@ impl<T> IdSlab<T> {
     /// ```
     pub fn by_index(&self, index: IdIndex) -> Option<&T> {
         match self.slots.get(index as usize) {
-            Some(&TaggedSlot { slot: Slot::Occupied { ref value }, .. }) => Some(value),
+            Some(&TaggedSlot {
+                slot: Slot::Occupied { ref value },
+                ..
+            }) => Some(value),
             _ => None,
         }
     }
@@ -504,7 +510,10 @@ impl<T> IdSlab<T> {
     /// ```
     pub fn by_index_mut(&mut self, index: IdIndex) -> Option<&mut T> {
         match self.slots.get_mut(index as usize) {
-            Some(&mut TaggedSlot { slot: Slot::Occupied { ref mut value }, .. }) => Some(value),
+            Some(&mut TaggedSlot {
+                slot: Slot::Occupied { ref mut value },
+                ..
+            }) => Some(value),
             _ => None,
         }
     }
@@ -532,15 +541,13 @@ impl<T> IdSlab<T> {
     pub fn index_to_id(&self, index: IdIndex) -> Option<Id<T>> {
         match self.slots.get(index as usize) {
             Some(&TaggedSlot {
-                     slot: Slot::Occupied { .. },
-                     tag,
-                 }) => {
-                Some(Id {
-                    index: index,
-                    tag: tag,
-                    _data: PhantomData,
-                })
-            }
+                slot: Slot::Occupied { .. },
+                tag,
+            }) => Some(Id {
+                index: index,
+                tag: tag,
+                _data: PhantomData,
+            }),
             _ => None,
         }
     }
@@ -564,8 +571,7 @@ fn panic_for_bad_id<T>(
     let reason = if id.index as usize > num_slots {
         format!(
             "index `{}` larger than number of slots `{}` (wrong `IdSlab`?)",
-            id.index,
-            num_slots
+            id.index, num_slots
         )
     } else if let Some(&TaggedSlot { tag, ref slot }) = tagged_slot {
         if tag > id.tag {
@@ -574,26 +580,21 @@ fn panic_for_bad_id<T>(
             } else {
                 format!(
                     "tag `{}` much older than slot tag `{}`, wrong `IdSlab` or deleted?",
-                    id.tag,
-                    tag
+                    id.tag, tag
                 )
             }
         } else if tag < id.tag {
             format!(
                 "tag `{}` newer than slot tag `{}`, wrong `IdSlab`?",
-                id.tag,
-                tag
+                id.tag, tag
             )
         } else {
             match *slot {
-                Slot::Free { .. } => {
-                    format!(
-                        "tag `{}` matches, but the slot is free, wrong `IdSlab` with same \
-                             seed_tag `{}`?",
-                        id.tag,
-                        seed_tag
-                    )
-                }
+                Slot::Free { .. } => format!(
+                    "tag `{}` matches, but the slot is free, wrong `IdSlab` with same \
+                     seed_tag `{}`?",
+                    id.tag, seed_tag
+                ),
                 Slot::Occupied { .. } => "<IdSlab bug [occupied], please report!>".to_owned(),
             }
         }
@@ -602,13 +603,8 @@ fn panic_for_bad_id<T>(
     };
     panic!(
         "Invalid id: {} (id={{ index=`{}`, tag=`{}` }}, id_slab={{ num_slots=`{}`, \
-            seed_tag=`{}`, len=`{}` }})",
-        reason,
-        id.index,
-        id.tag,
-        num_slots,
-        seed_tag,
-        len
+         seed_tag=`{}`, len=`{}` }})",
+        reason, id.index, id.tag, num_slots, seed_tag, len
     )
 }
 
@@ -626,8 +622,8 @@ impl<T> IndexMut<Id<T>> for IdSlab<T> {
     fn index_mut(&mut self, id: Id<T>) -> &mut Self::Output {
         let num_slots = self.slots.len();
         let &mut IdSlab { seed_tag, len, .. } = self;
-        self.get_mut_or_tagged_slot(id).unwrap_or_else(
-            |tagged_slot| {
+        self.get_mut_or_tagged_slot(id)
+            .unwrap_or_else(|tagged_slot| {
                 panic_for_bad_id(
                     num_slots,
                     seed_tag,
@@ -635,8 +631,7 @@ impl<T> IndexMut<Id<T>> for IdSlab<T> {
                     tagged_slot.map(|tagged_slot| &*tagged_slot),
                     id,
                 )
-            },
-        )
+            })
     }
 }
 
@@ -653,7 +648,11 @@ impl<'a, T: 'a> Iterator for Iter<'a, T> {
     fn next(&mut self) -> Option<Self::Item> {
         while self.num_left > 0 {
             let tagged_slot = self.iter.next().expect("Too few elements in Iter");
-            if let TaggedSlot { slot: Slot::Occupied { ref value }, .. } = *tagged_slot {
+            if let TaggedSlot {
+                slot: Slot::Occupied { ref value },
+                ..
+            } = *tagged_slot
+            {
                 self.num_left -= 1;
                 return Some(value);
             }
@@ -670,7 +669,11 @@ impl<'a, T: 'a> DoubleEndedIterator for Iter<'a, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         while self.num_left > 0 {
             let tagged_slot = self.iter.next_back().expect("Too few elements in Iter");
-            if let TaggedSlot { slot: Slot::Occupied { ref value }, .. } = *tagged_slot {
+            if let TaggedSlot {
+                slot: Slot::Occupied { ref value },
+                ..
+            } = *tagged_slot
+            {
                 self.num_left -= 1;
                 return Some(value);
             }
@@ -702,7 +705,11 @@ impl<'a, T: 'a> Iterator for IterMut<'a, T> {
     fn next(&mut self) -> Option<Self::Item> {
         while self.num_left > 0 {
             let tagged_slot = self.iter.next().expect("Too few elements in IterMut");
-            if let TaggedSlot { slot: Slot::Occupied { ref mut value }, .. } = *tagged_slot {
+            if let TaggedSlot {
+                slot: Slot::Occupied { ref mut value },
+                ..
+            } = *tagged_slot
+            {
                 self.num_left -= 1;
                 return Some(value);
             }
@@ -719,7 +726,11 @@ impl<'a, T: 'a> DoubleEndedIterator for IterMut<'a, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         while self.num_left > 0 {
             let tagged_slot = self.iter.next_back().expect("Too few elements in IterMut");
-            if let TaggedSlot { slot: Slot::Occupied { ref mut value }, .. } = *tagged_slot {
+            if let TaggedSlot {
+                slot: Slot::Occupied { ref mut value },
+                ..
+            } = *tagged_slot
+            {
                 self.num_left -= 1;
                 return Some(value);
             }
@@ -752,7 +763,6 @@ impl<'a, T: 'a> IntoIterator for &'a mut IdSlab<T> {
     }
 }
 
-
 #[derive(Debug, Clone)]
 enum Slot<T> {
     Free { next_free: IdIndex },
@@ -765,12 +775,10 @@ struct TaggedSlot<T> {
     slot: Slot<T>,
 }
 
-
-
 #[cfg(test)]
 mod tests {
-    use super::IdSlab;
     use super::super::id::Id;
+    use super::IdSlab;
     use std::marker::PhantomData;
 
     #[test]
@@ -914,8 +922,7 @@ mod tests {
             &(&mut id_slab)
                 .into_iter()
                 .map(|&mut x| x)
-                .collect::<Vec<_>>()
-                [..],
+                .collect::<Vec<_>>()[..],
             &[4, 3]
         );
     }

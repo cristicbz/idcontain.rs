@@ -1,9 +1,9 @@
+use super::Id;
 use std::cmp::Ordering;
 use std::fmt::{Debug, Formatter, Result as FmtResult};
 use std::hash::{Hash, Hasher};
 use std::mem;
 use std::option::IntoIter as OptionIntoIter;
-use super::Id;
 
 /// An `Option`-like container of `Id<T>` that takes up no additional space.
 ///
@@ -41,7 +41,11 @@ impl<T> OptionId<T> {
 
     #[inline]
     pub fn into_option(self) -> Option<Id<T>> {
-        if self.is_some() { Some(self.0) } else { None }
+        if self.is_some() {
+            Some(self.0)
+        } else {
+            None
+        }
     }
 
     #[inline]
@@ -56,7 +60,11 @@ impl<T> OptionId<T> {
 
     #[inline]
     pub fn as_ref(&self) -> Option<&Id<T>> {
-        if self.is_some() { Some(&self.0) } else { None }
+        if self.is_some() {
+            Some(&self.0)
+        } else {
+            None
+        }
     }
 
     #[inline]
@@ -91,7 +99,6 @@ impl<T> OptionId<T> {
         self.into_option().unwrap_or_else(f)
     }
 
-
     #[inline]
     pub fn map<U, F>(self, f: F) -> Option<U>
     where
@@ -99,7 +106,6 @@ impl<T> OptionId<T> {
     {
         self.into_option().map(f)
     }
-
 
     #[inline]
     pub fn map_or<U, F>(self, default: U, f: F) -> U
@@ -109,7 +115,6 @@ impl<T> OptionId<T> {
         self.into_option().map_or(default, f)
     }
 
-
     #[inline]
     pub fn map_or_else<U, D, F>(self, default: D, f: F) -> U
     where
@@ -118,7 +123,6 @@ impl<T> OptionId<T> {
     {
         self.into_option().map_or_else(default, f)
     }
-
 
     #[inline]
     pub fn ok_or<E>(self, err: E) -> Result<Id<T>, E> {
@@ -132,7 +136,6 @@ impl<T> OptionId<T> {
     {
         self.into_option().ok_or_else(err)
     }
-
 
     #[inline]
     pub fn iter(&self) -> OptionIntoIter<&Id<T>> {

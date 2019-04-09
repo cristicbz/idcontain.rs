@@ -17,7 +17,6 @@ pub trait Flat: Sized {
     fn push(&mut self, element: Self::Element);
 }
 
-
 pub trait FlatGet {
     type ElementRef;
     fn flat_get(self, index: usize) -> Option<Self::ElementRef>;
@@ -88,7 +87,6 @@ impl<T> Flat for Vec<T> {
         self.push(element);
     }
 }
-
 
 impl<'a, T> FlatGet for &'a Vec<T> {
     type ElementRef = &'a T;

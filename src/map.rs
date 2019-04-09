@@ -1,5 +1,5 @@
+use flat::{Flat, FlatAccess, FlatAccessMut, FlatGet, FlatGetMut};
 use id::{Id, IdIndex, MAXIMUM_CAPACITY};
-use flat::{FlatAccess, FlatAccessMut, Flat, FlatGet, FlatGetMut};
 
 pub type IdMapVec<E, T> = IdMap<E, Vec<T>>;
 
@@ -103,11 +103,9 @@ impl<E, F: Flat> IdMap<E, F> {
             None => return None,
         };
         reverse_lookup.swap_remove(usize_lookup_index);
-        reverse_lookup.get(usize_lookup_index).map(
-            |&reverse_index| {
-                lookup[reverse_index as usize].index = lookup_index
-            },
-        );
+        reverse_lookup
+            .get(usize_lookup_index)
+            .map(|&reverse_index| lookup[reverse_index as usize].index = lookup_index);
         Some(old_value)
     }
 
@@ -198,12 +196,10 @@ impl<E, F: Flat> IdMap<E, F> {
     #[inline]
     pub fn index_to_id(&self, index: usize) -> Option<Id<E>> {
         match self.reverse_lookup.get(index) {
-            Some(&lookup_index) => {
-                Some(Id {
-                    index: lookup_index,
-                    ..self.lookup[lookup_index as usize]
-                })
-            }
+            Some(&lookup_index) => Some(Id {
+                index: lookup_index,
+                ..self.lookup[lookup_index as usize]
+            }),
             _ => None,
         }
     }
