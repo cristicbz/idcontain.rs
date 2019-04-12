@@ -1,6 +1,6 @@
-use super::slab::IdSlab;
 use super::id::{Id, IdIndex, MAXIMUM_CAPACITY};
-use flat::{FlatAccess, FlatAccessMut, Flat, FlatGet, FlatGetMut};
+use super::slab::IdSlab;
+use flat::{Flat, FlatAccess, FlatAccessMut, FlatGet, FlatGetMut};
 
 pub struct IdVec<F: Flat> {
     ids: IdSlab<u32>,
@@ -46,9 +46,9 @@ impl<F: Flat> IdVec<F> {
     where
         &'a F: FlatGet,
     {
-        self.ids.get(id.cast()).and_then(|&index| {
-            self.flat.flat_get(index as usize)
-        })
+        self.ids
+            .get(id.cast())
+            .and_then(|&index| self.flat.flat_get(index as usize))
     }
 
     #[inline]
@@ -97,14 +97,12 @@ impl<F: Flat> IdVec<F> {
     #[inline]
     pub fn index_to_id(&self, index: usize) -> Option<Id<F::Element>> {
         match self.reverse.get(index) {
-            Some(&index) => {
-                Some(
-                    self.ids
-                        .index_to_id(index)
-                        .expect("reverse out of sync with ids in `index_to_id`")
-                        .cast(),
-                )
-            }
+            Some(&index) => Some(
+                self.ids
+                    .index_to_id(index)
+                    .expect("reverse out of sync with ids in `index_to_id`")
+                    .cast(),
+            ),
             _ => None,
         }
     }
