@@ -452,12 +452,24 @@ impl<T> IdSlab<T> {
     }
 
     fn get_mut_or_tagged_slot(&mut self, id: Id<T>) -> Result<&mut T, Option<&mut TaggedSlot<T>>> {
-        match self.slots.get_mut(id.index as usize) {
-            Some(&mut TaggedSlot {
-                slot: Slot::Occupied { ref mut value },
+        let tagged_slot = self.slots.get_mut(id.index as usize).ok_or(None)?;
+        match *tagged_slot {
+            TaggedSlot {
+                slot: Slot::Occupied { .. },
                 tag,
-            }) if tag == id.tag => Ok(value),
-            tagged_slot => Err(tagged_slot),
+            } if tag == id.tag => {
+                // We can not just return the inner value here because `*tagged_slot`
+                // would be considered borrowed until the end of the entire function.
+                // But it needs to be borrowed in the next match handle.
+                // That's why we have to re-match it.
+                match *tagged_slot {
+                    TaggedSlot {
+                        slot: Slot::Occupied { ref mut value }, ..
+                    } => Ok(value),
+                    _ => unreachable!(),
+                }
+            },
+            _ => Err(Some(tagged_slot)),
         }
     }
 
