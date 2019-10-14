@@ -453,11 +453,17 @@ impl<T> IdSlab<T> {
 
     fn get_mut_or_tagged_slot(&mut self, id: Id<T>) -> Result<&mut T, Option<&mut TaggedSlot<T>>> {
         match self.slots.get_mut(id.index as usize) {
-            Some(&mut TaggedSlot {
-                slot: Slot::Occupied { ref mut value },
-                tag,
-            }) if tag == id.tag => Ok(value),
-            tagged_slot => Err(tagged_slot),
+            Some(tagged_slot) => {
+                if id.tag == tagged_slot.tag {
+                    match tagged_slot.slot {
+                        Slot::Occupied { ref mut value } => Ok(value),
+                        _ => Err(Some(tagged_slot)),
+                    }
+                } else {
+                    Err(Some(tagged_slot))
+                }
+            }
+            _ => Err(None),
         }
     }
 
